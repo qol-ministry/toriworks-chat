@@ -1,0 +1,1380 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>株式会社トリワークス｜社内チャット</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --line:rgba(255,255,255,.08);
+      --text:#e8eefc;
+      --muted:rgba(232,238,252,.65);
+      --chip:rgba(122,162,255,.12);
+      --shadow:0 10px 30px rgba(0,0,0,.35);
+      --radius:18px;
+      --font: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+              "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic", "Meiryo", sans-serif;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(122,162,255,.16), transparent 60%),
+                  radial-gradient(900px 600px at 90% 30%, rgba(255,180,130,.10), transparent 55%),
+                  var(--bg);
+      color:var(--text);
+      font-family:var(--font);
+    }
+
+    .app{
+      height:100%;
+      display:grid;
+      grid-template-columns: 300px 1fr;
+      gap:14px;
+      padding:14px;
+    }
+
+    .sidebar, .main{
+      background: linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+      min-height:0;
+    }
+
+    /* Sidebar */
+    .sidebarHeader{
+      padding:14px 14px 10px;
+      background: rgba(0,0,0,.12);
+      border-bottom:1px solid var(--line);
+    }
+    .brand{display:flex;align-items:center;gap:10px;}
+    .logo{
+      width:34px;height:34px;border-radius:12px;
+      background: linear-gradient(145deg, rgba(122,162,255,.38), rgba(122,162,255,.10));
+      border:1px solid rgba(122,162,255,.25);
+      display:grid;place-items:center;
+      font-weight:700;
+      letter-spacing:.5px;
+    }
+    .title{display:flex;flex-direction:column;line-height:1.15;}
+    .title .name{font-weight:750}
+    .title .sub{font-size:12px;color:var(--muted)}
+    .sidebarBody{
+      padding:10px;
+      height:calc(100% - 64px);
+      overflow:auto;
+    }
+    .sectionLabel{
+      font-size:12px;
+      color:var(--muted);
+      padding:10px 10px 6px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:8px;
+    }
+    .pill{
+      font-size:11px;
+      padding:3px 8px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      color:var(--muted);
+      white-space:nowrap;
+    }
+    .addBtn{
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid rgba(122,162,255,.30);
+      background: rgba(122,162,255,.14);
+      color: rgba(232,238,252,.95);
+      cursor:pointer;
+      font-weight:700;
+      white-space:nowrap;
+    }
+    .addBtn:hover{background: rgba(122,162,255,.20)}
+
+    .channel{
+      width:100%;
+      border:0;
+      background: transparent;
+      color:var(--text);
+      text-align:left;
+      padding:10px 10px;
+      border-radius: 12px;
+      cursor:pointer;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    .channel:hover{ background: rgba(255,255,255,.05); }
+    .channel.active{
+      background: rgba(122,162,255,.14);
+      border:1px solid rgba(122,162,255,.20);
+    }
+    .channelLeft{ display:flex;align-items:center;gap:10px; min-width:0; }
+    .hash{
+      width:22px;height:22px;border-radius:8px;
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      display:grid;place-items:center;
+      color:var(--muted);
+      font-weight:700;
+      flex:0 0 auto;
+    }
+    .channelName{
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      font-weight:650;
+    }
+    .badge{
+      font-size:11px;
+      padding:2px 8px;
+      border-radius:999px;
+      background: var(--chip);
+      border:1px solid rgba(122,162,255,.25);
+      color: rgba(232,238,252,.9);
+      flex:0 0 auto;
+      white-space:nowrap;
+    }
+
+    /* Main layout: Slack-like (thread only when open) */
+    .mainInner{
+      height:100%;
+      display:grid;
+      grid-template-columns: 1fr; /* default: no thread, full width */
+      gap:0;
+    }
+    .mainInner.threadOpen{
+      grid-template-columns: 1fr 340px; /* thread open */
+    }
+    .chatPane{
+      display:flex;
+      flex-direction:column;
+      min-width:0;
+      border-right:1px solid var(--line);
+    }
+    .mainInner:not(.threadOpen) .chatPane{
+      border-right:none;
+    }
+    .threadPane{
+      display:none; /* hidden by default */
+      flex-direction:column;
+      min-width:0;
+      background: rgba(0,0,0,.06);
+    }
+    .mainInner.threadOpen .threadPane{
+      display:flex;
+    }
+
+    .mainHeader{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      background: rgba(0,0,0,.10);
+      gap:12px;
+    }
+    .roomTitle{ display:flex; flex-direction:column; gap:3px; min-width:0; }
+    .roomTitle .room{
+      font-weight:800; letter-spacing:.2px;
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .roomTitle .desc{
+      font-size:12px; color:var(--muted);
+      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    }
+    .toolbar{ display:flex; align-items:center; gap:8px; flex:0 0 auto; }
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      color:var(--text);
+      padding:8px 10px;
+      border-radius:12px;
+      cursor:pointer;
+      font-weight:650;
+      font-size:12px;
+    }
+    .btn:hover{background: rgba(255,255,255,.08)}
+    .btn.accent{
+      border-color: rgba(122,162,255,.30);
+      background: rgba(122,162,255,.14);
+    }
+    .btn.danger{
+      border-color: rgba(255,120,120,.25);
+      background: rgba(255,120,120,.10);
+    }
+
+    .messages, .threadMessages{
+      flex:1;
+      overflow:auto;
+      padding:14px;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      min-height:0;
+    }
+    .msg{
+      display:grid;
+      grid-template-columns: 40px 1fr;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .avatar{
+      width:40px;height:40px;border-radius:14px;
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      display:grid;place-items:center;
+      font-size:18px;
+      user-select:none;
+    }
+    .bubble{
+      background: rgba(255,255,255,.04);
+      border:1px solid var(--line);
+      border-radius: 14px;
+      padding:10px 12px;
+      position:relative;
+    }
+    .meta{ display:flex; align-items:baseline; gap:8px; margin-bottom:4px; flex-wrap:wrap; }
+    .who{ font-weight:800; }
+    .role{
+      font-size:11px;
+      padding:2px 8px;
+      border-radius:999px;
+      background: rgba(255,255,255,.06);
+      border:1px solid var(--line);
+      color:var(--muted);
+    }
+    .time{ font-size:11px; color:var(--muted); }
+    .text{ white-space:pre-wrap; line-height:1.45; }
+    .sys{ display:flex; justify-content:center; margin:8px 0; }
+    .sys span{
+      font-size:12px;
+      color:rgba(232,238,252,.7);
+      border:1px dashed rgba(255,255,255,.18);
+      padding:6px 10px;
+      border-radius:999px;
+      background: rgba(0,0,0,.10);
+    }
+
+    .bubbleActions{
+      position:absolute;
+      top:8px;
+      right:8px;
+      display:flex;
+      gap:6px;
+      opacity:.95;
+    }
+    .miniBtn{
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.12);
+      color:var(--text);
+      font-size:11px;
+      padding:4px 8px;
+      border-radius:999px;
+      cursor:pointer;
+    }
+    .miniBtn:hover{ background: rgba(255,255,255,.08); }
+
+    .threadHeader{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
+      background: rgba(0,0,0,.10);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:10px;
+    }
+    .threadTitle{
+      display:flex;
+      flex-direction:column;
+      gap:2px;
+      min-width:0;
+    }
+    .threadTitle .t1{ font-weight:800; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .threadTitle .t2{ font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .threadParent{
+      padding:14px;
+      border-bottom:1px solid var(--line);
+      background: rgba(255,255,255,.02);
+    }
+
+    .composer{
+      border-top:1px solid var(--line);
+      padding:12px 14px;
+      display:flex;
+      gap:10px;
+      align-items:center;
+      background: rgba(0,0,0,.06);
+    }
+    .field, .fieldSmall{
+      background: rgba(255,255,255,.05);
+      border:1px solid var(--line);
+      border-radius:12px;
+      color:var(--text);
+      padding:10px 10px;
+      font-family:var(--font);
+    }
+    .fieldSmall{width:150px}
+    .field{flex:1}
+    .send{
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid rgba(122,162,255,.30);
+      background: rgba(122,162,255,.16);
+      color:var(--text);
+      cursor:pointer;
+      font-weight:800;
+    }
+    .send:hover{background: rgba(122,162,255,.22)}
+
+    
+    .reactions{
+      display:flex;
+      gap:6px;
+      flex-wrap:wrap;
+      margin-top:6px;
+    }
+    .reactPill{
+      font-size:12px;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      cursor:pointer;
+      user-select:none;
+    }
+    .reactPill:hover{ background: rgba(255,255,255,.10); }
+    .reactPill.active{
+      border-color: rgba(122,162,255,.35);
+      background: rgba(122,162,255,.16);
+    }
+
+    .reactPill{
+      position:relative;
+    }
+    .reactPill:hover::after{
+      content: attr(data-users);
+      position:absolute;
+      bottom:130%;
+      left:50%;
+      transform:translateX(-50%);
+      background: rgba(0,0,0,.88);
+      color: #fff;
+      font-size: 11px;
+      padding: 6px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+      pointer-events:none;
+      border:1px solid rgba(255,255,255,.14);
+      box-shadow: 0 12px 24px rgba(0,0,0,.35);
+      opacity: .98;
+      z-index: 20;
+    }
+
+
+    @media (max-width: 980px){
+      .mainInner.threadOpen{ grid-template-columns: 1fr; }
+      .threadPane{ display:none !important; }
+    }
+    @media (max-width: 880px){
+      .app{grid-template-columns: 1fr}
+      .sidebar{display:none}
+    }
+/* ▼スクロールが死ぬ環境向けの保険 */
+.mainInner, .chatPane, .threadPane { min-height: 0 !important; }
+.messages, .threadMessages { min-height: 0 !important; overflow-y: auto !important; }
+.main { display:flex; } .mainInner { flex:1; }
+/* スレッド側：入力欄が狭いので折り返してボタンを隠さない */
+#threadPane .composer { flex-wrap: wrap; }
+#threadPane .fieldSmall { width: 120px; }
+#threadPane .field { min-width: 180px; }
+#threadPane .send { width: 100%; }
+
+  
+/* スタンプバー */
+.stampBar{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  padding:8px 14px;
+  border-top:1px solid var(--line);
+  background: rgba(0,0,0,.04);
+}
+.stampBtn{
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.05);
+  color:var(--text);
+  border-radius: 999px;
+  padding:6px 10px;
+  cursor:pointer;
+  font-size:14px;
+}
+.stampBtn:hover{ background: rgba(255,255,255,.08); }
+.msgStamp .text{
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+</style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebarHeader">
+        <div class="brand">
+          <div class="logo">🐦</div>
+          <div class="title">
+            <div class="name">株式会社トリワークス</div>
+            <div class="sub">社内チャット（自動保存あり）</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sidebarBody" id="channelList">
+        <div class="sectionLabel">
+          <span>チャンネル</span>
+          <span style="display:flex; gap:8px; align-items:center;">
+            <button class="addBtn" id="btnAddChannel">＋ 追加</button>
+            <span class="pill" id="todayPill">稼働中</span>
+          </span>
+        </div>
+        <!-- channels injected -->
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="mainInner" id="mainInner">
+        <!-- Chat -->
+        <section class="chatPane">
+          <div class="mainHeader">
+            <div class="roomTitle">
+              <div class="room" id="roomName"># 全体連絡</div>
+              <div class="desc" id="roomDesc">全員見て。鳴いてもいいけど短く。</div>
+            </div>
+            <div class="toolbar">
+              <button class="btn" id="btnClear">このチャンネルのログ消去</button>
+              <button class="btn accent" id="btnExport">Export</button>
+              <button class="btn danger" id="btnReset">リセット</button>
+		<button class="btn" id="btnDeleteMode">削除: A</button>
+		<button class="btn" id="btnSound">通知音: ON</button>
+
+            </div>
+          </div>
+
+          <div class="messages" id="messages"></div>
+
+
+          <div class="stampBar" id="stampBarMain">
+            <button class="stampBtn" data-stamp="👍">👍</button>
+            <button class="stampBtn" data-stamp="🐦‍⬛">🐦‍⬛</button>
+            <button class="stampBtn" data-stamp="🐣">🐣</button>
+            <button class="stampBtn" data-stamp="🪵">🪵</button>
+            <button class="stampBtn" data-stamp="💩">💩</button>
+            <button class="stampBtn" data-stamp="✨">✨</button>
+          </div>
+
+          <div class="composer">
+            <input class="fieldSmall" id="who" list="whoList" value="社長" />
+            <input class="fieldSmall" id="role" value="人間" />
+            <input class="field" id="text" placeholder="メッセージ（Enterで送信）" />
+            <button class="send" id="send">送信</button>
+          </div>
+        </section>
+
+        <!-- Thread -->
+        <aside class="threadPane" id="threadPane">
+          <div class="threadHeader">
+            <div class="threadTitle">
+              <div class="t1" id="threadRoom">スレッド</div>
+              <div class="t2" id="threadHint">メッセージに返信がつくやつ</div>
+            </div>
+            <button class="btn" id="btnCloseThread">閉じる</button>
+          </div>
+
+          <div class="threadParent" id="threadParent"></div>
+          <div class="threadMessages" id="threadMessages"></div>
+
+
+          <div class="stampBar" id="stampBarThread">
+            <button class="stampBtn" data-stamp="👍">👍</button>
+            <button class="stampBtn" data-stamp="🐦‍⬛">🐦‍⬛</button>
+            <button class="stampBtn" data-stamp="🐣">🐣</button>
+            <button class="stampBtn" data-stamp="💩">💩</button>
+            <button class="stampBtn" data-stamp="✨">✨</button>
+          </div>
+
+          <div class="composer">
+            <input class="fieldSmall" id="threadWho" list="whoList" value="社長" />
+            <input class="fieldSmall" id="threadRole" value="人間" />
+            <input class="field" id="threadText" placeholder="スレッドに返信（Enterで送信）" />
+            <button class="send" id="threadSend">返信</button>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <datalist id="whoList"></datalist>
+<script>
+  // ===== Storage =====
+  const STORAGE_KEY = "toriworks_chat_saved_v2_stampsound";
+
+  // ===== People (optional avatars) =====
+  const people = {
+    "社長": { avatar: "👨‍💼", role: "社長" },
+    "カラス": { avatar: "🐦‍⬛", role: "統括/情報" },
+    "キツツキ": { avatar: "🪵", role: "制作/入力" },
+    "コザクラ": { avatar: "🦜", role: "書類処理" },
+    "ハト軍団": { avatar: "🕊️", role: "現場/確保" },
+    "ヒヨコ": { avatar: "🐣", role: "同行/癒し" }
+  };
+
+  // ===== Helpers =====
+  function nowTime(){
+    const d = new Date();
+    const hh = String(d.getHours()).padStart(2, "0");
+    const mm = String(d.getMinutes()).padStart(2, "0");
+    return `${hh}:${mm}`;
+  }
+  
+  // 通知音（ピヨ）
+  function playNotify(){
+    if(!state.soundEnabled) return;
+    try{
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+
+      const o1 = ctx.createOscillator();
+      const g1 = ctx.createGain();
+      o1.type = "sine";
+      o1.frequency.value = 880;
+      g1.gain.value = 0.06;
+      o1.connect(g1); g1.connect(ctx.destination);
+      o1.start();
+      o1.stop(ctx.currentTime + 0.06);
+
+      const o2 = ctx.createOscillator();
+      const g2 = ctx.createGain();
+      o2.type = "sine";
+      o2.frequency.value = 1320;
+      g2.gain.value = 0.05;
+      o2.connect(g2); g2.connect(ctx.destination);
+      o2.start(ctx.currentTime + 0.07);
+      o2.stop(ctx.currentTime + 0.14);
+
+      setTimeout(() => ctx.close(), 200);
+    }catch(e){
+      // ignore
+    }
+  }
+
+function escapeHtml(s){
+    return String(s)
+      .replaceAll("&","&amp;")
+      .replaceAll("<","&lt;")
+      .replaceAll(">","&gt;")
+      .replaceAll('"',"&quot;")
+      .replaceAll("'","&#039;");
+  }
+
+  // ===== Reactions (Slack-like) =====
+  function normalizeReactions(obj){
+    // store as {emoji: [who, who, ...]}
+    if(!obj || typeof obj !== "object") return {};
+    for(const k of Object.keys(obj)){
+      if(!Array.isArray(obj[k])) obj[k] = [];
+    }
+    return obj;
+  }
+
+  function hasReacted(reactions, emoji, who){
+    if(!reactions || !reactions[emoji]) return false;
+    return reactions[emoji].includes(who);
+  }
+
+  function toggleReactionOnMessage(channelId, msgId, emoji, who){
+    const list = state.logs[channelId] || [];
+    const m = list.find(x => x.type === "msg" && x.id === msgId);
+    if(!m) return;
+
+    m.reactions = normalizeReactions(m.reactions);
+    if(!m.reactions[emoji]) m.reactions[emoji] = [];
+
+    const i = m.reactions[emoji].indexOf(who);
+    if(i >= 0){
+      m.reactions[emoji].splice(i, 1);
+    }else{
+      m.reactions[emoji].push(who);
+    }
+
+    // cleanup empty
+    if(m.reactions[emoji].length === 0) delete m.reactions[emoji];
+    if(Object.keys(m.reactions).length === 0) delete m.reactions;
+
+    saveState();
+    renderAll();
+  }
+
+  function toggleReactionOnReply(parentId, replyId, emoji, who){
+    const arr = state.threads[parentId] || [];
+    const r = arr.find(x => x.type === "msg" && x.id === replyId);
+    if(!r) return;
+
+    r.reactions = normalizeReactions(r.reactions);
+    if(!r.reactions[emoji]) r.reactions[emoji] = [];
+
+    const i = r.reactions[emoji].indexOf(who);
+    if(i >= 0){
+      r.reactions[emoji].splice(i, 1);
+    }else{
+      r.reactions[emoji].push(who);
+    }
+
+    if(r.reactions[emoji].length === 0) delete r.reactions[emoji];
+    if(Object.keys(r.reactions).length === 0) delete r.reactions;
+
+    saveState();
+    renderAll();
+  }
+
+  function reactionsHTML(reactions, who){
+    if(!reactions) return "";
+    const entries = Object.entries(reactions);
+    if(entries.length === 0) return "";
+    return `<div class="reactions">` + entries.map(([e, arr]) => {
+      const count = Array.isArray(arr) ? arr.length : 0;
+      const active = Array.isArray(arr) && arr.includes(who) ? "active" : "";
+      const users = Array.isArray(arr) ? arr : [];
+      const usersLabel = users.length ? users.join(", ") : "—";
+      return `<div class="reactPill ${active}" data-react-pill="${escapeHtml(e)}" data-users="${escapeHtml(usersLabel)}">${escapeHtml(e)} ${users.length}</div>`;
+    }).join("") + `</div>`;
+  }
+
+
+  function makeId(){
+    return "m_" + Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(2, 6);
+  }
+  function sys(text){
+    return { type:"sys", time: nowTime(), text };
+  }
+  function msg(who, text, roleOverride=null, timeOverride=null){
+    const p = people[who] || { avatar: "👤", role: "—" };
+    return {
+      type: "msg",
+      id: makeId(),
+      who,
+      avatar: p.avatar,
+      role: roleOverride ?? p.role,
+      time: timeOverride ?? nowTime(),
+      text
+    };
+  }
+  function uniqueIdFromName(name, existing){
+    const base = name
+      .toLowerCase()
+      .replace(/\s+/g, "-")
+      .replace(/[^\p{L}\p{N}\-]/gu, "")
+      .slice(0, 18) || "channel";
+    let id = base;
+    let n = 2;
+    while(existing.some(c => c.id === id)){
+      id = `${base}-${n++}`;
+    }
+    return id;
+  }
+
+  // ===== Defaults (first run) =====
+  function defaultState(){
+    const channels = [
+      { id: "all", name: "全体連絡", desc: "全員見て。鳴いてもいいけど短く。", badge: "重要" },
+      { id: "ops", name: "回収報告", desc: "落とし物・回収ログ。多い時は“多い”だけでOK。", badge: "ログ" },
+      { id: "claim", name: "クレーム対応", desc: "屋外限定。中に入るな。入るな。", badge: "要注意" },
+      { id: "unpaid", name: "未払い（鳥立て）", desc: "未回収はここ。圧は段階制。やりすぎ禁止。", badge: "回収" },
+      { id: "random", name: "ぬくりば雑談", desc: "雑談用。深刻な話はしない。", badge: "ゆる" },
+      { id: "hanami", name: "花見_場所取り", desc: "花見の場所確保。守れれば勝ち。", badge: "現場" }
+    ];
+
+    const logs = {};
+    channels.forEach(c => { logs[c.id] = [sys(`（#${c.name}）`)]; });
+
+    logs.all = [
+      sys("本日の稼働：92% / 爆撃対応：3件 / 落とし物回収：47件"),
+      msg("社長", "共有フォルダの「依頼_花見」見といて。"),
+      msg("カラス", "了解"),
+      msg("キツツキ", "資料つくる"),
+      msg("社長", "穴あけないでね"),
+      msg("キツツキ", "努力する"),
+    ];
+    logs.ops = [
+      sys("回収ログ：自動集計はしてない。気分で書く。"),
+      msg("カラス", "指輪 9"),
+      msg("社長", "多いな！？"),
+      msg("カラス", "公園にあった"),
+      msg("社長", "依頼主のは入ってる？"),
+      msg("カラス", "入ってる"),
+      msg("社長", "よし"),
+      msg("カラス", "あとこれ拾った（私物）"),
+      msg("社長", "100円は返して"),
+      msg("カラス", "無理"),
+    ];
+    logs.claim = [
+      sys("注意：屋内対応は禁止（鳥が迷子になる）"),
+      msg("社長", "現場どこ？"),
+      msg("カラス", "駅前"),
+      msg("社長", "鳥は？"),
+      msg("ハト軍団", "いる"),
+      msg("社長", "……座ってる？"),
+      msg("ハト軍団", "座ってる"),
+    ];
+    logs.unpaid = [
+      sys("鳥立て：圧は段階制。ステップ1＝窓コンコン。"),
+      msg("社長", "未払いリスト更新した"),
+      msg("カラス", "見た"),
+      msg("社長", "今日行けそう？"),
+      msg("カラス", "まぁがんばれ〜"),
+      msg("社長", "それ言うな"),
+    ];
+    logs.random = [
+      sys("雑談チャンネル：仕事の話はなるべくしない"),
+      msg("ヒヨコ", "ついていった"),
+      msg("ヒヨコ", "たのしい"),
+      msg("コザクラ", "紙おいしい"),
+      msg("社長", "食べないで"),
+      msg("コザクラ", "むり"),
+    ];
+    logs.hanami = [
+      sys("本日：花見_場所取り。現場は公園。守れれば勝ち。"),
+      msg("社長", "依頼：○○公園 12:30開始。ブルーシート確保。"),
+      msg("ハト軍団", "了解"),
+      msg("カラス", "現場見てくる"),
+      msg("社長", "糞は最終手段で。"),
+    ];
+
+    return {
+      version: 1,
+      active: "hanami",
+      channels,
+      logs,
+      threads: {},         // { [parentMsgId]: [replyMsg,...] }
+      threadOpen: false,
+      activeThreadId: null
+    };
+  }
+
+  function loadState(){
+    try{
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if(!raw) return defaultState();
+      const parsed = JSON.parse(raw);
+
+      // minimal validation / migrate
+      if(!parsed || !parsed.channels || !parsed.logs) return defaultState();
+
+      // Ensure required fields exist
+      parsed.version ??= 1;
+      parsed.threads ??= {};
+      parsed.threadOpen ??= false;
+      parsed.activeThreadId ??= null;
+
+      // Ensure active channel exists
+      if(!parsed.channels.some(c => c.id === parsed.active)){
+        parsed.active = parsed.channels[0]?.id ?? "all";
+      }
+      // Ensure logs exist for channels
+      parsed.channels.forEach(c => {
+        if(!parsed.logs[c.id]) parsed.logs[c.id] = [sys(`（#${c.name}）`)];
+      });
+
+      return parsed;
+    }catch{
+      return defaultState();
+    }
+  }
+
+  function saveState(){
+    try{
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }catch(e){
+      alert("保存に失敗したかも（容量/設定）：" + e);
+    }
+  }
+
+  // ===== State =====
+  const state = loadState();
+// 削除モード：A=完全削除 / B=回収表示（ソフト削除）
+state.deleteMode ??= "A"; // 保存復元される
+// 通知音（保存）
+state.soundEnabled ??= true;
+saveState();
+
+// ===== DOM =====
+  const mainInnerEl = document.getElementById("mainInner");
+  const channelListEl = document.getElementById("channelList");
+  const messagesEl = document.getElementById("messages");
+  const roomNameEl = document.getElementById("roomName");
+  const roomDescEl = document.getElementById("roomDesc");
+
+  const threadPaneEl = document.getElementById("threadPane");
+  const threadParentEl = document.getElementById("threadParent");
+  const threadMessagesEl = document.getElementById("threadMessages");
+  const threadRoomEl = document.getElementById("threadRoom");
+
+  const whoEl = document.getElementById("who");
+  const roleEl = document.getElementById("role");
+  const textEl = document.getElementById("text");
+
+  const threadWhoEl = document.getElementById("threadWho");
+  const threadRoleEl = document.getElementById("threadRole");
+  const threadTextEl = document.getElementById("threadText");
+
+  // ===== UI logic =====
+  function setThreadOpen(open){
+    state.threadOpen = open;
+    if(!open) state.activeThreadId = null;
+    mainInnerEl.classList.toggle("threadOpen", open);
+    saveState();
+  }
+
+  function renderChannels(){
+    [...channelListEl.querySelectorAll(".channel")].forEach(n => n.remove());
+
+    state.channels.forEach(ch => {
+      const btn = document.createElement("button");
+      btn.className = "channel" + (ch.id === state.active ? " active" : "");
+      btn.type = "button";
+      btn.innerHTML = `
+        <div class="channelLeft">
+          <div class="hash">#</div>
+          <div class="channelName">${escapeHtml(ch.name)}</div>
+        </div>
+        <div class="badge">${escapeHtml(ch.badge)}</div>
+      `;
+      btn.addEventListener("click", () => {
+        state.active = ch.id;
+        setThreadOpen(false);
+        renderAll();
+        saveState();
+      });
+      channelListEl.appendChild(btn);
+    });
+  }
+
+  function renderHeader(){
+    const ch = state.channels.find(c => c.id === state.active);
+    roomNameEl.textContent = "# " + (ch?.name ?? "不明");
+    roomDescEl.textContent = ch?.desc ?? "";
+  }
+
+  function countThreadReplies(parentId){
+    return (state.threads[parentId]?.length ?? 0);
+  }
+
+  function renderMessages(){
+    messagesEl.innerHTML = "";
+    const list = state.logs[state.active] || [];
+    list.forEach(item => {
+      if(item.type === "sys"){
+        const wrap = document.createElement("div");
+        wrap.className = "sys";
+        wrap.innerHTML = `<span>${escapeHtml(item.text)}</span>`;
+        messagesEl.appendChild(wrap);
+        return;
+      }
+      const replies = countThreadReplies(item.id);
+
+      const row = document.createElement("div");
+      row.className = "msg";
+      row.innerHTML = `
+        <div class="avatar" title="${escapeHtml(item.who)}">${escapeHtml(item.avatar)}</div>
+        <div class="bubble ${item.isStamp ? "msgStamp" : ""}">
+          <div class="bubbleActions">
+  <button class="miniBtn" data-reply="${escapeHtml(item.id)}">返信${replies ? ` (${replies})` : ""}</button>
+  <button class="miniBtn" data-del="${escapeHtml(item.id)}">削除</button>
+  <button class="miniBtn" data-react="👍" title="👍">👍</button>
+  <button class="miniBtn" data-react="🐦‍⬛" title="🐦‍⬛">🐦‍⬛</button>
+  <button class="miniBtn" data-react="💩" title="💩">💩</button>
+  <button class="miniBtn" data-react="✨" title="✨">✨</button>
+</div>
+
+          <div class="meta">
+            <div class="who">${escapeHtml(item.who)}</div>
+            <div class="role">${escapeHtml(item.role)}</div>
+            <div class="time">${escapeHtml(item.time)}</div>
+          </div>
+          <div class="text">${escapeHtml(item.text)}</div>
+          ${reactionsHTML(item.reactions, whoEl.value.trim() || "社長")}
+        </div>
+      `;
+      row.querySelector(`[data-reply="${item.id}"]`).addEventListener("click", () => openThread(item.id));
+
+      row.querySelector(`[data-del="${item.id}"]`).addEventListener("click", () => {
+        const ok = confirm("このメッセージを削除する？");
+        if(!ok) return;
+        deleteMessageById(state.active, item.id);
+      });
+
+      // reactions (toggle by current "who")
+      row.querySelectorAll("[data-react]").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const who = whoEl.value.trim() || "社長";
+          toggleReactionOnMessage(state.active, item.id, btn.getAttribute("data-react"), who);
+        });
+      });
+      row.querySelectorAll("[data-react-pill]").forEach(pill => {
+        pill.addEventListener("click", () => {
+          const who = whoEl.value.trim() || "社長";
+          toggleReactionOnMessage(state.active, item.id, pill.getAttribute("data-react-pill"), who);
+        });
+      });
+      messagesEl.appendChild(row);
+    });
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function renderAll(){
+    renderChannels();
+    renderHeader();
+    renderMessages();
+
+    // thread UI (if open)
+    if(state.threadOpen && state.activeThreadId){
+      mainInnerEl.classList.add("threadOpen");
+      renderThreadPane();
+    }else{
+      mainInnerEl.classList.remove("threadOpen");
+    }
+  }
+
+  // ===== Thread =====
+  function findMsgByIdInActiveChannel(msgId){
+    const list = state.logs[state.active] || [];
+    return list.find(m => m.type === "msg" && m.id === msgId) || null;
+  }
+
+  function renderThreadPane(){
+    const parent = findMsgByIdInActiveChannel(state.activeThreadId);
+    if(!parent){
+      setThreadOpen(false);
+      return;
+    }
+
+    const ch = state.channels.find(c => c.id === state.active);
+    threadRoomEl.textContent = `# ${ch?.name ?? state.active} のスレッド`;
+
+    threadParentEl.innerHTML = `
+      <div class="msg" style="grid-template-columns: 40px 1fr; gap:10px;">
+        <div class="avatar">${escapeHtml(parent.avatar)}</div>
+        <div class="bubble" style="margin:0;">
+          <div class="meta">
+            <div class="who">${escapeHtml(parent.who)}</div>
+            <div class="role">${escapeHtml(parent.role)}</div>
+            <div class="time">${escapeHtml(parent.time)}</div>
+          </div>
+          <div class="text">${escapeHtml(parent.text)}</div>
+        </div>
+      </div>
+    `;
+
+    renderThreadReplies();
+
+    threadWhoEl.value = whoEl.value;
+    threadRoleEl.value = roleEl.value;
+  }
+
+  function renderThreadReplies(){
+    const parentId = state.activeThreadId;
+    threadMessagesEl.innerHTML = "";
+
+    const replies = state.threads[parentId] || [];
+    if(replies.length === 0){
+      const wrap = document.createElement("div");
+      wrap.className = "sys";
+      wrap.innerHTML = `<span>（返信はまだない）</span>`;
+      threadMessagesEl.appendChild(wrap);
+    }else{
+      replies.forEach(r => {
+        const row = document.createElement("div");
+        row.className = "msg";
+        row.innerHTML = `
+  <div class="avatar">${escapeHtml(r.avatar)}</div>
+  <div class="bubble ${r.isStamp ? "msgStamp" : ""}">
+    <div class="bubbleActions">
+      <button class="miniBtn" data-del-reply="${escapeHtml(r.id)}">削除</button>
+      <button class="miniBtn" data-react-reply="👍" title="👍">👍</button>
+      <button class="miniBtn" data-react-reply="🐦‍⬛" title="🐦‍⬛">🐦‍⬛</button>
+      <button class="miniBtn" data-react-reply="💩" title="💩">💩</button>
+      <button class="miniBtn" data-react-reply="✨" title="✨">✨</button>
+    </div>
+    <div class="meta">
+      <div class="who">${escapeHtml(r.who)}</div>
+      <div class="role">${escapeHtml(r.role)}</div>
+      <div class="time">${escapeHtml(r.time)}</div>
+    </div>
+    <div class="text">${escapeHtml(r.text)}</div>
+    ${reactionsHTML(r.reactions, threadWhoEl.value.trim() || "社長")}
+  </div>
+`;
+row.querySelector(`[data-del-reply="${r.id}"]`).addEventListener("click", () => {
+  const ok = confirm("この返信を削除する？");
+  if(!ok) return;
+  deleteReplyById(state.activeThreadId, r.id);
+});
+
+
+row.querySelectorAll("[data-react-reply]").forEach(btn=>{
+  btn.addEventListener("click", ()=>{
+    const who = (threadWhoEl.value.trim() || whoEl.value.trim() || "社長");
+    toggleReactionOnReply(state.activeThreadId, r.id, btn.getAttribute("data-react-reply"), who);
+  });
+});
+row.querySelectorAll("[data-react-pill]").forEach(pill=>{
+  pill.addEventListener("click", ()=>{
+    const who = (threadWhoEl.value.trim() || whoEl.value.trim() || "社長");
+    toggleReactionOnReply(state.activeThreadId, r.id, pill.getAttribute("data-react-pill"), who);
+  });
+});
+
+
+        threadMessagesEl.appendChild(row);
+      });
+    }
+    threadMessagesEl.scrollTop = threadMessagesEl.scrollHeight;
+  }
+
+  function openThread(msgId){
+    state.activeThreadId = msgId;
+    setThreadOpen(true);
+    renderAll();
+    // focus
+    setTimeout(() => threadTextEl.focus(), 0);
+  }
+
+  function closeThread(){
+    setThreadOpen(false);
+    renderAll();
+  }
+
+  function sendThreadReply(){
+    if(!state.threadOpen || !state.activeThreadId) return;
+    const who = threadWhoEl.value.trim() || "社長";
+    const role = threadRoleEl.value.trim() || "—";
+    const text = threadTextEl.value.trim();
+    if(!text) return;
+
+    const p = people[who] || { avatar:"👤", role };
+    const reply = {
+      type:"msg",
+      id: makeId(),
+      who,
+      avatar: p.avatar,
+      role,
+      time: nowTime(),
+      text
+    };
+
+    if(!state.threads[state.activeThreadId]) state.threads[state.activeThreadId] = [];
+    state.threads[state.activeThreadId].push(reply);
+
+    threadTextEl.value = "";
+    saveState();
+    renderThreadReplies();
+    renderMessages(); // update reply count    playNotify();
+  }
+
+  // ===== Send message (channel) =====
+  function send(){
+    const who = whoEl.value.trim() || "社長";
+    const role = roleEl.value.trim() || "—";
+    const text = textEl.value.trim();
+    if(!text) return;
+
+    const p = people[who] || { avatar:"👤", role };
+    const m = {
+      type:"msg",
+      id: makeId(),
+      who,
+      avatar: p.avatar,
+      role,
+      time: nowTime(),
+      text
+    };
+
+    if(!state.logs[state.active]) state.logs[state.active] = [sys("（ログ）")];
+    state.logs[state.active].push(m);
+
+    textEl.value = "";
+    saveState();
+    renderMessages();    playNotify();
+  }
+
+  // ===== Export / Clear / Add channel / Reset =====
+  async function exportActive(){
+    const ch = state.channels.find(c => c.id === state.active);
+    const lines = [];
+    lines.push(`# ${ch?.name ?? state.active}`);
+    lines.push(`— ${ch?.desc ?? ""}`);
+    lines.push("");
+
+    const list = state.logs[state.active] || [];
+    for(const item of list){
+      if(item.type === "sys"){
+        lines.push(`[SYS] ${item.text}`);
+      }else{
+        lines.push(`[${item.time}] ${item.who} (${item.role}): ${item.text}`);
+        const reps = state.threads[item.id] || [];
+        if(reps.length){
+          lines.push(`  └─ replies:`);
+          reps.forEach(r => lines.push(`     [${r.time}] ${r.who} (${r.role}): ${r.text}`));
+        }
+      }
+    }
+    const out = lines.join("\n");
+
+    try{
+      await navigator.clipboard.writeText(out);
+      alert("コピーした！どこにでも貼れるよ。");
+    }catch{
+      prompt("コピーしてね（Ctrl+C）", out);
+    }
+  }
+
+function clearActiveChannel(){
+  const ch = state.channels.find(c => c.id === state.active);
+  const ok = confirm(`#${ch?.name ?? state.active} のログとスレッドを全部消す？`);
+  if(!ok) return;
+
+  // ① 今のチャンネルの親メッセージIDを全部取得
+  const currentLogs = state.logs[state.active] || [];
+  const parentIds = currentLogs
+    .filter(m => m.type === "msg")
+    .map(m => m.id);
+
+  // ② その親に紐づくスレッドも削除
+  parentIds.forEach(id => {
+    delete state.threads[id];
+  });
+
+  // ③ ログ初期化
+  state.logs[state.active] = [sys("（ログとスレッドを消去しました）")];
+
+  closeThread();
+  saveState();
+  renderAll();
+}
+
+  function addChannel(){
+    const name = prompt("チャンネル名（例：花見_場所取り）", "");
+    if(!name) return;
+
+    const desc = prompt("説明（省略OK）", "（新規チャンネル）") ?? "";
+    const badge = prompt("バッジ（例：案件 / 重要 / ゆる）", "新規") ?? "新規";
+
+    const id = uniqueIdFromName(name, state.channels);
+    state.channels.push({ id, name, desc, badge });
+    state.logs[id] = [sys(`（#${name} を作成しました）`)];
+    state.active = id;
+
+    closeThread();
+    saveState();
+    renderAll();
+  }
+
+  function resetAll(){
+    const ok = confirm("全部リセットする？（チャンネル・ログ・スレッド全部消える）");
+    if(!ok) return;
+    localStorage.removeItem(STORAGE_KEY);
+    // reload as fresh
+    location.reload();
+  }
+
+function deleteMessageById(channelId, msgId){
+  const mode = state.deleteMode;
+
+  // 親メッセージを探す
+  const list = state.logs[channelId] || [];
+  const idx = list.findIndex(m => m.type === "msg" && m.id === msgId);
+  if(idx === -1) return;
+
+  if(mode === "A"){
+    // A: 完全削除（親＋スレッドも消す）
+    list.splice(idx, 1);
+    delete state.threads[msgId];
+
+    // 今見てるスレッドの親を消したらスレッド閉じる
+    if(state.threadOpen && state.activeThreadId === msgId){
+      setThreadOpen(false);
+    }
+  }else{
+    // B: 回収表示（親は残す、スレッドは残してもOKだけど親が回収済みになる）
+    const m = list[idx];
+    m.deleted = true;
+    m.deletedStyle = "crow";
+    m.text = "（この発言はカラスに回収されました）";
+  }
+
+  saveState();
+  renderAll();
+}
+
+function deleteReplyById(parentId, replyId){
+  const mode = state.deleteMode;
+  const arr = state.threads[parentId] || [];
+  const idx = arr.findIndex(r => r.id === replyId);
+  if(idx === -1) return;
+
+  if(mode === "A"){
+    arr.splice(idx, 1);
+  }else{
+    arr[idx].deleted = true;
+    arr[idx].deletedStyle = "crow";
+    arr[idx].text = "（この返信はカラスに回収されました）";
+  }
+
+  saveState();
+  renderAll();
+}
+
+  
+  // ===== Stamps =====
+  function sendStampToChannel(stamp){
+    const who = whoEl.value.trim() || "社長";
+    const role = roleEl.value.trim() || "—";
+    const p = people[who] || { avatar:"👤", role };
+
+    const m = {
+      type:"msg",
+      id: makeId(),
+      who,
+      avatar: p.avatar,
+      role,
+      time: nowTime(),
+      text: stamp,
+      isStamp: true
+    };
+
+    if(!state.logs[state.active]) state.logs[state.active] = [sys("（ログ）")];
+    state.logs[state.active].push(m);
+
+    saveState();
+    renderMessages();
+    playNotify();
+  }
+
+  function sendStampToThread(stamp){
+    if(!state.threadOpen || !state.activeThreadId) return;
+
+    const who = threadWhoEl.value.trim() || "社長";
+    const role = threadRoleEl.value.trim() || "—";
+    const p = people[who] || { avatar:"👤", role };
+
+    const reply = {
+      type:"msg",
+      id: makeId(),
+      who,
+      avatar: p.avatar,
+      role,
+      time: nowTime(),
+      text: stamp,
+      isStamp: true
+    };
+
+    if(!state.threads[state.activeThreadId]) state.threads[state.activeThreadId] = [];
+    state.threads[state.activeThreadId].push(reply);
+
+    saveState();
+    renderAll();
+    playNotify();
+  }
+
+// ===== Wire events =====
+  document.getElementById("send").addEventListener("click", send);
+  textEl.addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){ e.preventDefault(); send(); }
+  });
+
+  document.getElementById("btnExport").addEventListener("click", exportActive);
+  document.getElementById("btnClear").addEventListener("click", clearActiveChannel);
+  document.getElementById("btnAddChannel").addEventListener("click", addChannel);
+  document.getElementById("btnReset").addEventListener("click", resetAll);
+
+  document.getElementById("btnCloseThread").addEventListener("click", closeThread);
+  document.getElementById("threadSend").addEventListener("click", sendThreadReply);
+  threadTextEl.addEventListener("keydown", (e) => {
+    if(e.key === "Enter"){ e.preventDefault(); sendThreadReply(); }
+  });
+
+  // status pill
+  (function(){
+    const p = document.getElementById("todayPill");
+    const d = new Date();
+    p.textContent = `稼働中 / ${d.getMonth()+1}/${d.getDate()}`;
+  })();
+
+
+  // name dropdown (datalist)
+  (function(){
+    const dl = document.getElementById("whoList");
+    if(!dl) return;
+    dl.innerHTML = "";
+    const names = new Set(["社長"]);
+    Object.keys(people || {}).forEach(n => names.add(n));
+    Array.from(names).forEach(n => {
+      const opt = document.createElement("option");
+      opt.value = n;
+      dl.appendChild(opt);
+    });
+  })();
+
+  // ===== Init =====
+  // reflect persisted thread state
+  mainInnerEl.classList.toggle("threadOpen", !!state.threadOpen);
+  renderAll();
+
+function refreshSoundBtn(){
+  const b = document.getElementById("btnSound");
+  if(!b) return;
+  b.textContent = `通知音: ${state.soundEnabled ? "ON" : "OFF"}`;
+}
+document.getElementById("btnSound").addEventListener("click", () => {
+  state.soundEnabled = !state.soundEnabled;
+  saveState();
+  refreshSoundBtn();
+});
+refreshSoundBtn();
+
+// スタンプ送信
+document.getElementById("stampBarMain").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-stamp]");
+  if(!b) return;
+  sendStampToChannel(b.getAttribute("data-stamp"));
+});
+document.getElementById("stampBarThread").addEventListener("click", (e) => {
+  const b = e.target.closest("[data-stamp]");
+  if(!b) return;
+  sendStampToThread(b.getAttribute("data-stamp"));
+});
+
+function refreshDeleteModeBtn(){
+  const b = document.getElementById("btnDeleteMode");
+  if(!b) return;
+  b.textContent = `削除: ${state.deleteMode}`;
+}
+document.getElementById("btnDeleteMode").addEventListener("click", () => {
+  state.deleteMode = (state.deleteMode === "A") ? "B" : "A";
+  saveState();
+  refreshDeleteModeBtn();
+  alert(`削除モードを ${state.deleteMode} にした`);
+});
+refreshDeleteModeBtn();
+
+</script>
+</body>
+</html>
