@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="ja">
 <head>
+<link rel="manifest" href="manifest.json">
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>株式会社トリワークス｜社内チャット</title>
@@ -423,7 +424,87 @@
   line-height: 1.1;
 }
 
-</style>
+
+    /* ===== Mobile layout ===== */
+    .backdrop{
+      display:none;
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.45);
+      z-index:40;
+    }
+
+    @media (max-width: 900px){
+      .app{
+        grid-template-columns: 1fr;
+        padding:10px;
+      }
+      .sidebar{
+        display:block;
+        position:fixed;
+        top:0; bottom:0; left:-320px;
+        width: 280px;
+        max-width: 82vw;
+        z-index:50;
+        transition:left .18s ease;
+        border-radius:0;
+        margin:0;
+      }
+      .app.sidebarOpen .sidebar{ left:0; }
+      .app.sidebarOpen .backdrop{ display:block; }
+
+      /* Main takes full width */
+      .main{ min-width:0; }
+
+      /* Toolbar: wrap buttons */
+      .toolbar{ flex-wrap:wrap; gap:8px; }
+      #btnClear{ flex:1 1 100%; }
+
+      /* Hide thread by default; show as overlay when open */
+      .threadPane{
+        position:fixed;
+        top:10px; bottom:10px; right:-110%;
+        width: min(520px, calc(100vw - 20px));
+        z-index:60;
+        transition:right .18s ease;
+        border-radius: 18px;
+      }
+      .mainInner.threadOpen .threadPane{
+        right:10px;
+      }
+
+      /* Make chat pane full width */
+      .mainInner{
+        grid-template-columns: 1fr;
+      }
+      .chatPane{ min-width:0; }
+
+      /* Bubble actions wrap on small screens */
+      .bubbleActions{ flex-wrap:wrap; gap:6px; }
+      .bubbleActions .miniBtn{ padding:6px 10px; }
+
+      /* Stamp bars wrap nicely */
+      .stampBar{ gap:8px; }
+
+      /* Composer fields stack */
+      .composer{
+        flex-wrap:wrap;
+      }
+      .composer .fieldSmall{ width: 45%; min-width: 140px; }
+      .composer .field{ flex:1 1 100%; min-width: 200px; }
+      .composer .send{ width: 100%; }
+    }
+/* ===== Mobile sidebar: make it opaque ===== */
+@media (max-width: 900px){
+  .sidebar{
+    background: rgba(10, 14, 22, 0.96) !important; /* ほぼ不透明 */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-right: 1px solid rgba(255,255,255,.10);
+    box-shadow: 18px 0 40px rgba(0,0,0,.45);
+  }
+}
+  </style>
 </head>
 <body>
   <div class="app">
@@ -450,6 +531,8 @@
       </div>
     </aside>
 
+    <div class="backdrop" id="backdrop"></div>
+
     <main class="main">
       <div class="mainInner" id="mainInner">
         <!-- Chat -->
@@ -460,7 +543,8 @@
               <div class="desc" id="roomDesc">全員見て。鳴いてもいいけど短く。</div>
             </div>
             <div class="toolbar">
-              <button class="btn" id="btnClear">このチャンネルのログ消去</button>
+              <button class="btn" id="btnMenu">☰</button>
+<button class="btn" id="btnClear">このチャンネルのログ消去</button>
               <button class="btn accent" id="btnExport">Export</button>
               <button class="btn danger" id="btnReset">リセット</button>
 		<button class="btn" id="btnDeleteMode">削除: A</button>
@@ -816,6 +900,9 @@ state.soundEnabled ??= true;
 saveState();
 
 // ===== DOM =====
+  const appEl = document.querySelector(".app");
+  const backdropEl = document.getElementById("backdrop");
+  const btnMenuEl = document.getElementById("btnMenu");
   const mainInnerEl = document.getElementById("mainInner");
   const channelListEl = document.getElementById("channelList");
   const messagesEl = document.getElementById("messages");
@@ -834,6 +921,30 @@ saveState();
   const threadWhoEl = document.getElementById("threadWho");
   const threadRoleEl = document.getElementById("threadRole");
   const threadTextEl = document.getElementById("threadText");
+
+  // Mobile: sidebar toggle
+  if(btnMenuEl){
+    btnMenuEl.addEventListener("click", () => {
+      appEl.classList.toggle("sidebarOpen");
+    });
+  }
+  if(backdropEl){
+    backdropEl.addEventListener("click", () => {
+      appEl.classList.remove("sidebarOpen");
+    });
+  }
+
+
+  // Mobile: tap reaction counts to see who reacted (hover代替)
+  function tapShowReactUsers(e){
+    const pill = e.target.closest(".reactPill");
+    if(!pill) return;
+    if(!window.matchMedia || !window.matchMedia("(max-width: 900px)").matches) return;
+    const users = pill.getAttribute("data-users") || "";
+    if(users) alert(users);
+  }
+  messagesEl.addEventListener("click", tapShowReactUsers);
+  threadMessagesEl.addEventListener("click", tapShowReactUsers);
 
   // ===== UI logic =====
   function setThreadOpen(open){
@@ -862,6 +973,8 @@ saveState();
         setThreadOpen(false);
         renderAll();
         saveState();
+        // mobile: close sidebar after selecting a channel
+        appEl.classList.remove("sidebarOpen");
       });
       channelListEl.appendChild(btn);
     });
@@ -1375,6 +1488,11 @@ document.getElementById("btnDeleteMode").addEventListener("click", () => {
 });
 refreshDeleteModeBtn();
 
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js');
+}
 </script>
 </body>
 </html>
