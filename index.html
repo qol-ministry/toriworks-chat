@@ -168,7 +168,9 @@
       display:none; /* hidden by default */
       flex-direction:column;
       min-width:0;
-      background: rgba(0,0,0,.06);
+      background: linear-gradient(180deg, rgba(17,24,39,.92), rgba(10,14,22,.92));
+      border-left:1px solid rgba(255,255,255,.08);
+      box-shadow: -18px 0 40px rgba(0,0,0,.25);
     }
     .mainInner.threadOpen .threadPane{
       display:flex;
@@ -313,7 +315,9 @@
       display:flex;
       gap:10px;
       align-items:center;
-      background: rgba(0,0,0,.06);
+      background: linear-gradient(180deg, rgba(17,24,39,.92), rgba(10,14,22,.92));
+      border-left:1px solid rgba(255,255,255,.08);
+      box-shadow: -18px 0 40px rgba(0,0,0,.25);
     }
     .field, .fieldSmall{
       background: rgba(255,255,255,.05);
@@ -383,7 +387,8 @@
 
     @media (max-width: 980px){
       .mainInner.threadOpen{ grid-template-columns: 1fr; }
-      .threadPane{ display:none !important; }
+      /* スレッドはモバイルでオーバーレイ表示するため、display:none を使わない */
+      .mainInner.threadOpen .threadPane{ display:flex !important; }
     }
     @media (max-width: 880px){
       .app{grid-template-columns: 1fr}
@@ -468,6 +473,12 @@
         z-index:60;
         transition:right .18s ease;
         border-radius: 18px;
+        background: rgba(10, 14, 22, 0.98);
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(255,255,255,.10);
+        box-shadow: 0 20px 60px rgba(0,0,0,.55);
+        overflow: hidden;
       }
       .mainInner.threadOpen .threadPane{
         right:10px;
@@ -504,7 +515,272 @@
     box-shadow: 18px 0 40px rgba(0,0,0,.45);
   }
 }
-  </style>
+/* --- Mobile: 返信/削除が名前やリアクションに被るのを防ぐ --- */
+@media (max-width: 520px){
+  .bubbleActions{
+    position: static;          /* ← absoluteやめる */
+    margin: 6px 0 6px;
+    justify-content: flex-end; /* 右寄せ */
+    flex-wrap: wrap;          /* 画面が狭い時は折り返す */
+    gap: 6px;
+  }
+  .bubbleActions .miniBtn{
+    font-size: 10px;
+    padding: 3px 7px;
+  }
+}
+/* ===== Slack風 チャンネルヘッダー ===== */
+
+.channelHeader{
+  display:flex !important;
+  flex-direction:column !important;
+  align-items:flex-start !important;
+  gap:12px;
+}
+
+.channelHeaderTop{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.channelTitle{
+  font-size:18px;
+  font-weight:600;
+}
+
+.channelActions{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+  
+/* ===== App & Channel Menus (Slack-like) ===== */
+.headerRight{
+  margin-left:auto;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.iconBtn{
+  width:34px;
+  height:34px;
+  border-radius:10px;
+  border:1px solid var(--line);
+  background: rgba(255,255,255,.06);
+  color: var(--text);
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:18px;
+}
+.iconBtn:hover{ background: rgba(255,255,255,.10); }
+
+.menuOverlay{
+  position:fixed;
+  inset:0;
+  background: rgba(0,0,0,.35);
+  opacity:0;
+  pointer-events:none;
+  transition: opacity .15s ease;
+  z-index: 2500;
+}
+
+.menuOverlay.open{
+  opacity:1;
+  pointer-events:auto;
+}
+
+.dropdownMenu{
+  position:fixed;
+  min-width: 220px;
+  max-width: calc(100vw - 24px);
+  background: rgba(10, 14, 22, 0.98);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 18px 40px rgba(0,0,0,.55);
+  border-radius: 14px;
+  padding: 8px;
+  z-index: 2600;
+}
+
+.dropdownTitle{
+  font-size:12px;
+  opacity:.75;
+  padding: 8px 10px 6px;
+}
+
+.menuItem{
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding: 10px 10px;
+  border-radius: 12px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  cursor:pointer;
+  text-align:left;
+}
+.menuItem:hover{ background: rgba(255,255,255,.08); }
+.menuItem.danger{ color: #ffb4b4; }
+.menuItem.danger:hover{ background: rgba(255,80,80,.14); }
+
+.kbdHint{
+  font-size:11px;
+  opacity:.55;
+}
+
+@media (max-width: 520px){
+  .dropdownMenu{ min-width: 200px; }
+}
+
+
+/* Sidebar header app button */
+.sidebarTopRow{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+.sidebarTopRow .sidebarTitle{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-width:0;
+}
+
+
+    .sidebarFooter{
+      padding:12px 14px;
+      border-top:1px solid var(--line);
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+    }
+    .sidebarFooter .menuItem{
+      flex:1 1 auto;
+      justify-content:center;
+    }
+
+  
+/* ===== Sidebar Footer Actions (always visible) ===== */
+.sidebarFooterActions{
+  position: sticky;
+  bottom: 0;
+  padding: 10px 12px 12px;
+  margin-top: 10px;
+  background: rgba(8,12,18,.92);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid rgba(255,255,255,.10);
+  z-index: 5;
+}
+.sidebarFooterActions .footerGrid{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.sidebarFooterActions .footerGrid .btn{
+  width: 100%;
+  justify-content: center;
+}
+.sidebarFooterActions .footerRow{
+  display:flex;
+  gap:10px;
+  margin-top:10px;
+}
+.sidebarFooterActions .footerRow .btn{
+  flex:1;
+  justify-content:center;
+}
+
+@media (max-width: 520px){
+  /* Hide header action row on mobile; actions live in sidebar */
+  .channelActions{ display:none !important; }
+}
+
+
+/* ===== Sidebar footer: FIXED so it never disappears ===== */
+.sidebarFooterActions{
+  position: absolute; /* default */
+}
+.sidebarDrawer{
+  position: relative;
+}
+@media (max-width: 520px){
+  .sidebarDrawer{
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    height: 100dvh !important;
+    width: min(86vw, 360px) !important;
+    overflow: hidden !important;
+    z-index: 40 !important;
+  }
+  .sidebarDrawer .sidebarInner{
+    height: 100%;
+    overflow-y: auto;
+    padding-bottom: 140px; /* room for footer */
+  }
+  .sidebarDrawer .sidebarFooterActions{
+    position: fixed !important;
+    left: 0;
+    bottom: 0;
+    width: min(86vw, 360px) !important;
+    z-index: 60 !important;
+  }
+}
+
+
+/* more popover */
+.morePopover{
+  position: fixed;
+  inset: 0;
+  display: none;
+  z-index: 9999;
+  background: rgba(0,0,0,.28);
+  backdrop-filter: blur(2px);
+}
+.morePopover.show{display:block;}
+.morePopoverInner{
+  position: absolute;
+  min-width: 220px;
+  max-width: calc(100vw - 24px);
+  border-radius: 14px;
+  padding: 10px;
+  background: rgba(18,24,36,.92);
+  border: 1px solid rgba(255,255,255,.12);
+  box-shadow: 0 18px 50px rgba(0,0,0,.55);
+}
+.moreTitle{
+  font-size: 12px;
+  opacity: .75;
+  margin: 2px 2px 8px;
+}
+.moreGrid{
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+.moreEmojiBtn{
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(255,255,255,.06);
+  color: inherit;
+  font-size: 18px;
+}
+.moreEmojiBtn:active{transform: scale(.98);}
+@media (max-width: 720px){
+  .moreGrid{grid-template-columns: repeat(5, 1fr);}
+  .moreEmojiBtn{width: 44px; height: 44px; font-size: 19px;}
+}
+
+</style>
 </head>
 <body>
   <div class="app">
@@ -529,6 +805,15 @@
         </div>
         <!-- channels injected -->
       </div>
+
+      <div class="sidebarFooter">
+        <div class="sidebarFooterActions">
+          <button class="pillBtn" id="btnDeleteMode" title="削除モード切替">削除: A</button>
+          <button class="pillBtn" id="btnSound" title="通知音切替">通知音: ON</button>
+          <button class="pillBtn" id="btnExport" title="Export">Export</button>
+          <button class="pillBtn danger" id="btnReset" title="リセット">リセット</button>
+        </div>
+      </div>
     </aside>
 
     <div class="backdrop" id="backdrop"></div>
@@ -538,18 +823,21 @@
         <!-- Chat -->
         <section class="chatPane">
           <div class="mainHeader">
-            <div class="roomTitle">
-              <div class="room" id="roomName"># 全体連絡</div>
-              <div class="desc" id="roomDesc">全員見て。鳴いてもいいけど短く。</div>
-            </div>
-            <div class="toolbar">
-              <button class="btn" id="btnMenu">☰</button>
-<button class="btn" id="btnClear">このチャンネルのログ消去</button>
-              <button class="btn accent" id="btnExport">Export</button>
-              <button class="btn danger" id="btnReset">リセット</button>
-		<button class="btn" id="btnDeleteMode">削除: A</button>
-		<button class="btn" id="btnSound">通知音: ON</button>
+            <button class="btn" id="btnMenu">☰</button>
 
+            <div class="channelHeader">
+              <div class="channelHeaderTop">
+                <div class="roomTitle">
+                  <div class="room" id="roomName"># 全体連絡</div>
+                  <div class="desc" id="roomDesc">全員見て。鳴いてもいいけど短く。</div>
+                </div>
+
+                <div class="headerRight">
+                  <button class="iconBtn" id="btnChannelMore" aria-label="channel menu">…</button>
+                </div>
+              </div>
+
+              <div class="channelActions"></div>
             </div>
           </div>
 
@@ -607,7 +895,14 @@
   </div>
 
   <datalist id="whoList"></datalist>
-<script>
+
+
+  <!-- Menus -->
+  <div class="menuOverlay" id="menuOverlay"></div>
+
+  <div class="dropdownMenu" id="channelMenu" style="display:none;">
+    <div class="dropdownTitle">チャンネル</div>
+    <button class="menuItem danger" id="btnClear">このチャンネルのログ消去</button></div><script>
   // ===== Storage =====
   const STORAGE_KEY = "toriworks_chat_saved_v2_stampsound";
 
@@ -1011,10 +1306,7 @@ saveState();
           <div class="bubbleActions">
   <button class="miniBtn" data-reply="${escapeHtml(item.id)}">返信${replies ? ` (${replies})` : ""}</button>
   <button class="miniBtn" data-del="${escapeHtml(item.id)}">削除</button>
-  <button class="miniBtn" data-react="👍" title="👍">👍</button>
-  <button class="miniBtn" data-react="🐦‍⬛" title="🐦‍⬛">🐦‍⬛</button>
-  <button class="miniBtn" data-react="💩" title="💩">💩</button>
-  <button class="miniBtn" data-react="✨" title="✨">✨</button>
+  <button class="miniBtn moreBtn" data-more="${escapeHtml(item.id)}" aria-label="リアクション">…</button>
 </div>
 
           <div class="meta">
@@ -1034,13 +1326,14 @@ saveState();
         deleteMessageById(state.active, item.id);
       });
 
-      // reactions (toggle by current "who")
-      row.querySelectorAll("[data-react]").forEach(btn => {
-        btn.addEventListener("click", () => {
-          const who = whoEl.value.trim() || "社長";
-          toggleReactionOnMessage(state.active, item.id, btn.getAttribute("data-react"), who);
+      // reactions: open "…" menu
+      const moreBtn = row.querySelector(`[data-more="${item.id}"]`);
+      if(moreBtn){
+        moreBtn.addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          openMorePopover(moreBtn, item.id);
         });
-      });
+      }
       row.querySelectorAll("[data-react-pill]").forEach(pill => {
         pill.addEventListener("click", () => {
           const who = whoEl.value.trim() || "社長";
@@ -1065,6 +1358,75 @@ saveState();
       mainInnerEl.classList.remove("threadOpen");
     }
   }
+
+  // ===== More popover (reactions) =====
+  const MORE_EMOJIS = ["👍","🐦‍⬛","🐣","💩","✨","😂","🙏","🔥","👀","❤️"];
+  const morePopoverEl = document.getElementById("morePopover");
+  const moreGridEl = document.getElementById("moreGrid");
+  let moreForMsgId = null;
+
+  function buildMoreGrid(){
+    if(!moreGridEl) return;
+    moreGridEl.innerHTML = MORE_EMOJIS.map(e => `
+      <button class="moreEmojiBtn" data-more-emoji="${escapeHtml(e)}" title="${escapeHtml(e)}">${escapeHtml(e)}</button>
+    `).join("");
+    moreGridEl.querySelectorAll("[data-more-emoji]").forEach(btn => {
+      btn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        if(!moreForMsgId) return;
+        const who = whoEl.value.trim() || "社長";
+        const emoji = btn.getAttribute("data-more-emoji");
+        toggleReactionOnMessage(state.active, moreForMsgId, emoji, who);
+        closeMorePopover();
+      });
+    });
+  }
+
+  function openMorePopover(anchorEl, msgId){
+    // Accept either (anchorEl, msgId) or (msgId, event/anchorEl)
+    if(anchorEl && (typeof anchorEl === 'string' || typeof anchorEl === 'number')){
+      const tmp = msgId;
+      msgId = anchorEl;
+      anchorEl = tmp;
+    }
+    if(anchorEl && anchorEl.currentTarget) anchorEl = anchorEl.currentTarget;
+    if(!morePopoverEl) return;
+    moreForMsgId = msgId;
+    buildMoreGrid();
+    morePopoverEl.classList.add("show");
+    morePopoverEl.setAttribute("aria-hidden", "false");
+
+    // position
+    const inner = morePopoverEl.querySelector(".morePopoverInner");
+    const r = anchorEl.getBoundingClientRect();
+    const pad = 10;
+    const maxLeft = window.innerWidth - (inner.offsetWidth || 240) - pad;
+    let left = Math.min(maxLeft, Math.max(pad, r.left));
+    let top = r.bottom + 10;
+    // if near bottom, show above
+    if(top + (inner.offsetHeight || 180) > window.innerHeight - pad){
+      top = Math.max(pad, r.top - (inner.offsetHeight || 180) - 10);
+    }
+    inner.style.left = left + "px";
+    inner.style.top = top + "px";
+  }
+
+  function closeMorePopover(){
+    if(!morePopoverEl) return;
+    morePopoverEl.classList.remove("show");
+    morePopoverEl.setAttribute("aria-hidden", "true");
+    moreForMsgId = null;
+  }
+
+  if(morePopoverEl){
+    morePopoverEl.addEventListener("click", () => closeMorePopover());
+    window.addEventListener("scroll", () => closeMorePopover(), {passive:true});
+    window.addEventListener("resize", () => closeMorePopover(), {passive:true});
+    document.addEventListener("keydown", (e) => {
+      if(e.key === "Escape") closeMorePopover();
+    });
+  }
+
 
   // ===== Thread =====
   function findMsgByIdInActiveChannel(msgId){
@@ -1494,5 +1856,53 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('./sw.js');
 }
 </script>
+
+
+<script>
+(function(){
+  const moreBtn = document.getElementById('btnChannelMore');
+  const menu = document.getElementById('channelMenu');
+  const overlay = document.getElementById('menuOverlay');
+
+  function hide(){
+    if(menu) menu.style.display='none';
+    if(overlay) overlay.style.display='none';
+  }
+  function show(anchor){
+    if(!menu || !overlay || !anchor) return;
+    overlay.style.display='block';
+    menu.style.display='block';
+    // position near anchor (top-right)
+    const r = anchor.getBoundingClientRect();
+    const mw = menu.offsetWidth || 220;
+    const x = Math.max(12, Math.min(window.innerWidth - mw - 12, r.right - mw));
+    const y = Math.max(12, r.bottom + 10);
+    menu.style.left = x + 'px';
+    menu.style.top = y + 'px';
+  }
+
+  if(moreBtn){
+    moreBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      e.stopPropagation();
+      const isOpen = menu && menu.style.display !== 'none' && menu.style.display !== '';
+      if(isOpen) hide(); else show(moreBtn);
+    });
+  }
+  if(overlay) overlay.addEventListener('click', hide);
+  document.addEventListener('keydown', (e)=>{ if(e.key==='Escape') hide(); });
+  window.addEventListener('resize', hide);
+})();
+</script>
+
+
+  <!-- Reaction quick menu -->
+  <div id="morePopover" class="morePopover" aria-hidden="true">
+    <div class="morePopoverInner">
+      <div class="moreTitle">リアクション</div>
+      <div class="moreGrid" id="moreGrid"></div>
+    </div>
+  </div>
+
 </body>
 </html>
